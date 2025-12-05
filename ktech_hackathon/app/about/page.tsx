@@ -14,7 +14,7 @@ export default function AboutPage() {
       <section className="relative w-full h-[60vh] min-h-[500px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="/about-hero.jpg"
+            src="/about-pic-1.jpg"
             alt="Luxehaven hospitality"
             fill
             className="object-cover"
@@ -67,12 +67,15 @@ export default function AboutPage() {
               </div>
             </div>
             <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-lg">
-              <Image
-                src="/about-story.jpg"
-                alt="Luxehaven story"
-                fill
-                className="object-cover"
-              />
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              >
+                <source src="/about-video.mp4" type="video/mp4" />
+              </video>
             </div>
           </div>
         </div>
@@ -177,7 +180,7 @@ export default function AboutPage() {
           <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
             <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-lg md:order-first order-last">
               <Image
-                src="/about-hospitality.jpg"
+                src="/about-pic-2.jpg"
                 alt="Luxehaven hospitality"
                 fill
                 className="object-cover"
@@ -247,7 +250,7 @@ export default function AboutPage() {
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                       <svg
                         className="w-4 h-4 text-white"
                         fill="none"
@@ -267,7 +270,7 @@ export default function AboutPage() {
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                       <svg
                         className="w-4 h-4 text-white"
                         fill="none"
@@ -294,7 +297,15 @@ export default function AboutPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 sm:py-20 md:py-24 bg-blue-600 text-white">
+      <section 
+        className="relative py-16 sm:py-20 md:py-24 bg-blue-600 text-white overflow-hidden"
+        style={{
+          backgroundImage: "url(/pin-card.svg)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
             <div className="text-center">
@@ -309,7 +320,9 @@ export default function AboutPage() {
               <div className="text-4xl sm:text-5xl md:text-6xl font-bold mb-2">
                 100K+
               </div>
-              <div className="text-sm sm:text-base opacity-90">Happy Guests</div>
+              <div className="text-sm sm:text-base opacity-90">
+                Happy Guests
+              </div>
             </div>
             <div className="text-center">
               <div className="text-4xl sm:text-5xl md:text-6xl font-bold mb-2">

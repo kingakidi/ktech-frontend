@@ -24,20 +24,22 @@ export default function RoomsSection() {
       className="relative w-full max-w-[100vw] bg-linear-to-b from-white via-gray-50 to-white pt-16 overflow-hidden"
     >
       {/* Decorative Background Elements */}
-      <div className="absolute top-20 -right-10 sm:right-10 w-48 h-48 sm:w-72 sm:h-72 bg-blue-500/20 rounded-full blur-3xl z-20" />
-      <div className="absolute bottom-20 -left-10 sm:left-10 w-64 h-64 sm:w-96 sm:h-96 bg-purple-500/15 rounded-full blur-3xl z-20" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[600px] h-[90vw] max-h-[600px] bg-blue-400/10 rounded-full blur-3xl z-20" />
+      <div className="absolute top-20 -right-10 sm:right-10 w-48 h-48 sm:w-72 sm:h-72 bg-blue-500/20 rounded-full blur-3xl z-10" />
+      <div className="absolute bottom-20 -left-10 sm:left-10 w-64 h-64 sm:w-96 sm:h-96 bg-purple-500/15 rounded-full blur-3xl z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[600px] h-[90vw] max-h-[600px] bg-blue-400/10 rounded-full blur-3xl z-10" />
+
+      {/* Rotating Star Decorations */}
+      <div className="absolute top-10 right-[15%] w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 opacity-30 animate-spin-slow z-10">
+        <Image src="/star.svg" alt="" fill className="object-contain" />
+      </div>
+      <div className="absolute top-32 left-[10%] w-12 h-12 sm:w-16 sm:h-16 opacity-20 animate-spin-slower z-10">
+        <Image src="/star.svg" alt="" fill className="object-contain" />
+      </div>
 
       <div className="relative max-w-[1440px] mx-auto px-4 sm:px-6 md:px-8 lg:px-16 xl:px-32">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 md:mb-12 gap-4">
           <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Star className="w-6 h-6 text-white fill-white" />
-              </div>
-              <div className="h-px flex-1 max-w-[60px] bg-gradient-to-r from-blue-600/60 to-transparent" />
-            </div>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-gray-900 tracking-tight leading-tight mb-2">
               Explore our rooms
             </h2>
