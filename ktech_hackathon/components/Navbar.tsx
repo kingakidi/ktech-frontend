@@ -57,15 +57,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="shrink-0">
-            <h1
-              className={`text-base sm:text-lg md:text-xl font-extrabold tracking-tight transition-colors duration-300 ${
-                isDarkBackground && !isScrolled
-                  ? "text-white/95"
-                  : "text-gray-900"
-              }`}
-            >
-              luxehaven
-            </h1>
+            <img
+              src="/logo.svg"
+              alt="luxehaven"
+              className="h-7 sm:h-8 md:h-9 w-auto"
+            />
           </Link>
 
           {/* Desktop Navigation */}

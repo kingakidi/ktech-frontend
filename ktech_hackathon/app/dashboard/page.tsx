@@ -3,9 +3,15 @@
 import { Eye, EyeOff, Clock, ChevronRight, Sparkles, Zap } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
   const [showPin, setShowPin] = useState(false);
+  const router = useRouter();
+
+  const handleFoodClick = () => {
+    router.push("/dashboard/services/request?service=8&name=Restaurant");
+  };
 
   return (
     <div className="px-3 sm:px-5 lg:px-6 py-4 sm:py-5 lg:py-6 max-w-full">
@@ -92,7 +98,11 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4">
             {[1, 2].map((item) => (
-              <div key={item} className="flex flex-col gap-1.5 sm:gap-2">
+              <button
+                key={item}
+                onClick={handleFoodClick}
+                className="flex flex-col gap-1.5 sm:gap-2 text-left hover:opacity-90 transition-opacity"
+              >
                 <div className="h-[110px] sm:h-[140px] lg:h-[193px] w-full rounded-lg sm:rounded-xl lg:rounded-2xl overflow-hidden relative">
                   <Image
                     src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=268&h=193&fit=crop"
@@ -114,7 +124,7 @@ export default function DashboardPage() {
                     $249
                   </p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -132,16 +142,29 @@ export default function DashboardPage() {
 
           <div className="bg-neutral-100 border border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 flex flex-col gap-2.5 sm:gap-3 lg:gap-4">
             {[
-              { name: "Room Service", color: "bg-[#dc6803]", icon: "🛁" },
-              { name: "Laundry", color: "bg-[#039855]", icon: "👔" },
+              {
+                name: "Room Service",
+                color: "bg-[#dc6803]",
+                icon: "🛁",
+                id: 1,
+              },
+              { name: "Laundry", color: "bg-[#039855]", icon: "👔", id: 2 },
               {
                 name: "SPA & Amenities",
                 color: "bg-[#1570ef]",
                 icon: "☕",
+                id: 3,
               },
             ].map((service, idx) => (
               <button
                 key={idx}
+                onClick={() =>
+                  router.push(
+                    `/dashboard/services/request?service=${
+                      service.id
+                    }&name=${encodeURIComponent(service.name)}`
+                  )
+                }
                 className="bg-white border border-gray-200 rounded-lg sm:rounded-xl p-2.5 sm:p-3 lg:p-4 flex items-center justify-between hover:shadow-md transition-shadow min-w-0"
               >
                 <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 min-w-0 flex-1">

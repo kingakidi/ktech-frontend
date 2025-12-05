@@ -67,10 +67,12 @@ export default function LoginDialog({
           {/* Header */}
           <div className="flex flex-col gap-4 sm:gap-6 items-center text-center">
             {/* Logo */}
-            <div className="relative w-[43px] h-[43px] rounded-[11px] bg-white border border-[rgba(10,13,18,0.12)] shadow-[0px_1.353px_1.353px_-0.676px_rgba(10,13,18,0.13),0px_1.353px_4.058px_0px_rgba(10,13,18,0.1),0px_1.353px_2.705px_0px_rgba(10,13,18,0.06)] flex items-center justify-center">
-              <span className="text-[#19429d] text-[25px] font-extrabold leading-[38px]">
-                L
-              </span>
+            <div className="flex items-center justify-center">
+              <img
+                src="/logo.svg"
+                alt="luxehaven"
+                className="h-12 w-auto"
+              />
             </div>
 
             {/* Title & Description */}

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Luxe Haven - AI-Powered Hotel Management",
+  title: "luxehaven - AI-Powered Hotel Management",
   description:
     "Experience luxury accommodations with AI-powered personalization. Book your perfect stay with Luxe Haven.",
 };

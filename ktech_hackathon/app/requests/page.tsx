@@ -73,16 +73,11 @@ export default function RequestsPage() {
         <div className="flex flex-col gap-6 pt-8">
           {/* Logo */}
           <div className="px-4 pr-5">
-            <div className="flex gap-2.5 items-center">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-gray-200 shadow-sm">
-                <p className="font-['Bricolage_Grotesque'] font-extrabold text-[#19429d] text-[18.7px] leading-[28px]">
-                  k
-                </p>
-              </div>
-              <p className="font-['Bricolage_Grotesque'] font-extrabold text-white text-[18.7px] leading-[28px]">
-                KTech Hack
-              </p>
-            </div>
+            <img
+              src="/logo.svg"
+              alt="luxehaven"
+              className="h-8 w-auto"
+            />
           </div>
 
           {/* Navigation */}
@@ -168,16 +163,11 @@ export default function RequestsPage() {
           {/* Sidebar Header */}
           <div className="flex flex-col gap-6 pt-8">
             <div className="px-4 pr-5">
-              <div className="flex gap-2.5 items-center">
-                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-gray-200 shadow-sm">
-                  <p className="font-['Bricolage_Grotesque'] font-extrabold text-[#19429d] text-[18.7px] leading-[28px]">
-                    k
-                  </p>
-                </div>
-                <p className="font-['Bricolage_Grotesque'] font-extrabold text-white text-[18.7px] leading-[28px]">
-                  KTech Hack
-                </p>
-              </div>
+              <img
+                src="/logo.svg"
+                alt="luxehaven"
+                className="h-8 w-auto"
+              />
             </div>
 
             <nav className="px-4 flex flex-col gap-4">
