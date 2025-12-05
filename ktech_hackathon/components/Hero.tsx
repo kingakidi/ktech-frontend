@@ -25,7 +25,7 @@ export default function Hero() {
     if (checkIn) params.append("checkIn", checkIn);
     if (checkOut) params.append("checkOut", checkOut);
     if (guests) params.append("guests", guests);
-    
+
     router.push(`/#rooms${params.toString() ? `?${params.toString()}` : ""}`);
   };
 
@@ -78,7 +78,7 @@ export default function Hero() {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
-              
+
               {/* Date Inputs */}
               <div className="grid grid-cols-2 gap-2">
                 <input
@@ -96,7 +96,7 @@ export default function Hero() {
                   className="text-xs sm:text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-blue-600"
                 />
               </div>
-              
+
               {/* Guests */}
               <input
                 type="number"
@@ -106,7 +106,7 @@ export default function Hero() {
                 placeholder="Number of guests"
                 className="w-full text-sm sm:text-base text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-blue-600"
               />
-              
+
               {/* Search Button */}
               <button
                 onClick={handleSearch}
