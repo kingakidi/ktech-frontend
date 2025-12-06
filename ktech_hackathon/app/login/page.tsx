@@ -72,10 +72,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    // Google sign in functionality to be implemented
-  };
-
   const handleForgotPassword = () => {
     router.push("/forgot-password");
   };
@@ -183,13 +179,6 @@ export default function LoginPage() {
             >
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
-
-            {/* Divider */}
-            <div className="flex items-center gap-2 w-full">
-              <div className="flex-1 h-px bg-[#e9eaeb]" />
-              <span className="text-sm text-[#717680]">OR</span>
-              <div className="flex-1 h-px bg-[#e9eaeb]" />
-            </div>
           </form>
 
           {/* Footer */}
