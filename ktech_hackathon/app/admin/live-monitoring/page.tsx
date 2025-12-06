@@ -295,6 +295,70 @@ export default function LiveMonitoringPage() {
     }
   };
 
+  const handleCheckIn = async (roomId: string) => {
+    try {
+      // Find the booking for this room
+      const booking = bookings.find(
+        (b) =>
+          (b.room?._id === roomId || b.room === roomId) &&
+          b.status !== "cancelled" &&
+          b.status !== "checked-out" &&
+          !b.checkedIn
+      );
+
+      if (!booking) {
+        toast.error("No active booking found for this room");
+        return;
+      }
+
+      // Check if room is available
+      const room = rooms.find((r) => r._id === roomId);
+      if (!room) {
+        toast.error("Room not found");
+        return;
+      }
+
+      if (room.status === "occupied") {
+        toast.error("Room is already occupied by another guest");
+        return;
+      }
+
+      if (room.status === "maintenance" || room.status === "unserviceable") {
+        toast.error("Room is not available for check-in (maintenance/unserviceable)");
+        return;
+      }
+
+      // Call check-in endpoint
+      const response = await axiosInstance.post(`/bookings/${booking._id}/checkin`);
+      
+      if (response.data.status === "success") {
+        toast.success("Guest checked in successfully!");
+        
+        // Refresh bookings and rooms
+        try {
+          const bookingsResponse = await axiosInstance.get("/bookings/active");
+          const bookingsData = bookingsResponse.data.data?.bookings || [];
+          setBookings(bookingsData);
+        } catch (err) {
+          // Fallback to all bookings if active endpoint fails
+          const fallbackResponse = await axiosInstance.get("/bookings");
+          const fallbackData = fallbackResponse.data.data?.bookings || fallbackResponse.data.doc || [];
+          setBookings(fallbackData);
+        }
+        await fetchRooms();
+        
+        // Close modal if open
+        setShowModal(false);
+        setSelectedRoom(null);
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message || "Failed to check in guest";
+      toast.error(errorMessage);
+      console.error("Error checking in guest:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 max-w-[1200px] mx-auto flex items-center justify-center min-h-[400px]">
@@ -1026,18 +1090,52 @@ export default function LiveMonitoringPage() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => handleDeleteRoom(selectedRoom.id)}
-                className="flex items-center justify-center gap-2 h-12 px-5 py-3 bg-[#fef3f2] border border-[#fef3f2] rounded-[50px] shadow-sm hover:bg-red-100 transition-colors"
-              >
-                <Trash2 className="w-5 h-5 text-[#b42318]" />
-                <span
-                  className="text-base font-semibold leading-6 text-[#b42318]"
-                  style={{ fontFamily: "Geist, sans-serif" }}
-                >
-                  Delete
-                </span>
-              </button>
+              {(() => {
+                // Find booking for this room
+                const roomBooking = bookings.find(
+                  (b) =>
+                    (b.room?._id === selectedRoom.id || b.room === selectedRoom.id) &&
+                    b.status !== "cancelled" &&
+                    b.status !== "checked-out" &&
+                    !b.checkedIn
+                );
+                const isCheckedIn = bookings.find(
+                  (b) =>
+                    (b.room?._id === selectedRoom.id || b.room === selectedRoom.id) &&
+                    b.checkedIn
+                );
+
+                if (roomBooking && !isCheckedIn && selectedRoom.status !== "occupied") {
+                  return (
+                    <button
+                      onClick={() => handleCheckIn(selectedRoom.id)}
+                      className="flex items-center justify-center gap-2 h-12 px-5 py-3 bg-[#039855] border border-[#039855] rounded-[50px] shadow-sm hover:bg-[#027a48] transition-colors"
+                    >
+                      <Check className="w-5 h-5 text-white" />
+                      <span
+                        className="text-base font-semibold leading-6 text-white"
+                        style={{ fontFamily: "Geist, sans-serif" }}
+                      >
+                        Check In
+                      </span>
+                    </button>
+                  );
+                }
+                return (
+                  <button
+                    onClick={() => handleDeleteRoom(selectedRoom.id)}
+                    className="flex items-center justify-center gap-2 h-12 px-5 py-3 bg-[#fef3f2] border border-[#fef3f2] rounded-[50px] shadow-sm hover:bg-red-100 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5 text-[#b42318]" />
+                    <span
+                      className="text-base font-semibold leading-6 text-[#b42318]"
+                      style={{ fontFamily: "Geist, sans-serif" }}
+                    >
+                      Delete
+                    </span>
+                  </button>
+                );
+              })()}
               <button
                 onClick={() => {
                   const backendRoom = selectedRoom.backendRoom;
