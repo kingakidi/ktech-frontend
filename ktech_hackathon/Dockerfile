@@ -2,11 +2,11 @@ FROM node:22 AS builder
 
 WORKDIR /app
 
-COPY package.json yarn.lock* ./
-RUN yarn install --frozen-lockfile
+COPY package.json package-lock.json* ./
+RUN npm ci
 
 COPY . .
-RUN yarn build
+RUN npm run build
 
 # Production image
 FROM node:22 AS runner
