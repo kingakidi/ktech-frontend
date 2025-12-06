@@ -24,7 +24,7 @@ const handler = NextAuth({
           const apiUrl =
             process.env.NEXT_PUBLIC_API_URL || 
             (process.env.NODE_ENV === "production" 
-              ? "https://ktech.sydeestack.com/api/v1" 
+              ? "https://ktech-api.sydeestack.com/api/v1" 
               : "http://localhost:3000/api/v1");
 
           // API request to validate user

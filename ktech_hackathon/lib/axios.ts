@@ -13,18 +13,18 @@ const getApiUrl = () => {
     const hostname = window.location.hostname;
     const protocol = window.location.protocol;
 
-    // Production domain - use same domain with /api/v1 path
+    // Production domain - use ktech-api subdomain
     if (
       hostname === "ktech.sydeestack.com" ||
       hostname.includes("sydeestack.com")
     ) {
-      return `${protocol}//${hostname}/api/v1`;
+      return `${protocol}//ktech-api.sydeestack.com/api/v1`;
     }
   }
 
   // Server-side or development fallback
   if (process.env.NODE_ENV === "production") {
-    return "https://ktech.sydeestack.com/api/v1";
+    return "https://ktech-api.sydeestack.com/api/v1";
   }
 
   // Default to localhost for local development
