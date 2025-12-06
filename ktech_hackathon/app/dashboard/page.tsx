@@ -1,11 +1,12 @@
 "use client";
 
-import { Eye, EyeOff, Clock, ChevronRight, Sparkles, Zap, Calendar, MapPin, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Clock, ChevronRight, Sparkles, Zap, Calendar, MapPin, CheckCircle, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axiosInstance from "@/lib/axios";
 import { useBookings } from "@/lib/hooks/useBookings";
+import { useServices } from "@/lib/hooks/useServices";
 import { storage } from "@/lib/storage";
 import { toast } from "react-toastify";
 
@@ -27,8 +28,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [userBookings, setUserBookings] = useState<any[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [checkedInBooking, setCheckedInBooking] = useState<any>(null);
+  const [checkingOut, setCheckingOut] = useState(false);
   const router = useRouter();
-  const { activeBookings, fetchActiveBookings } = useBookings();
+  const { myBookings, fetchMyBookings } = useBookings();
+  const { services, fetchServices } = useServices();
+  const [quickServices, setQuickServices] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,14 +51,27 @@ export default function DashboardPage() {
         );
         setServiceRequests(activeRequests.slice(0, 4));
 
-        // Fetch user bookings
+        // Fetch user bookings using the hook
         try {
-          const bookingsResponse = await axiosInstance.get("/bookings/my-bookings");
-          const myBookings = bookingsResponse.data.data?.bookings || [];
-          setUserBookings(myBookings);
+          const bookings = await fetchMyBookings();
+          setUserBookings(bookings || []);
+          
+          // Find checked-in booking
+          const checkedIn = bookings.find(
+            (b: any) => b.status === "checked-in" || b.checkedIn === true
+          );
+          setCheckedInBooking(checkedIn || null);
         } catch (bookingError) {
           console.error("Error fetching user bookings:", bookingError);
           setUserBookings([]);
+          setCheckedInBooking(null);
+        }
+
+        // Fetch services
+        try {
+          await fetchServices();
+        } catch (serviceError) {
+          console.error("Error fetching services:", serviceError);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -65,8 +83,15 @@ export default function DashboardPage() {
     };
 
     fetchData();
-    fetchActiveBookings();
   }, []);
+
+  useEffect(() => {
+    // Set quick services from fetched services (first 3 active services)
+    if (services.length > 0) {
+      const active = services.filter((s: any) => s.active).slice(0, 3);
+      setQuickServices(active);
+    }
+  }, [services]);
 
   const handleFoodClick = () => {
     router.push("/dashboard/services/request?service=8&name=Restaurant");
@@ -82,11 +107,47 @@ export default function DashboardPage() {
     }
   };
 
+  const handleCheckout = async () => {
+    if (!checkedInBooking) {
+      toast.error("No active booking found");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to check out? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      setCheckingOut(true);
+      await axiosInstance.post(`/bookings/${checkedInBooking._id}/checkout`);
+      toast.success("Checkout successful! Thank you for staying with us.");
+      
+      // Refresh bookings
+      const bookings = await fetchMyBookings();
+      setUserBookings(bookings || []);
+      setCheckedInBooking(null);
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "Failed to checkout";
+      toast.error(errorMessage);
+    } finally {
+      setCheckingOut(false);
+    }
+  };
+
   const getRoomDisplay = (booking: any) => {
     if (booking.room?.alphabet && booking.room?.number) {
       return `${booking.room.alphabet}${booking.room.number.toString().padStart(2, "0")}`;
     }
     return booking.room?.roomNumber || "N/A";
+  };
+
+  const getRoomFloor = (booking: any) => {
+    // You can add floor logic based on room number or category
+    if (booking.room?.number) {
+      const floor = Math.floor((booking.room.number - 1) / 10) + 1;
+      return `${floor === 1 ? "First" : floor === 2 ? "Second" : floor === 3 ? "Third" : `${floor}th`} Floor`;
+    }
+    return "N/A";
   };
 
   const formatDate = (dateString: string) => {
@@ -98,72 +159,111 @@ export default function DashboardPage() {
     });
   };
 
+  const getDaysUntilCheckIn = (booking: any) => {
+    if (!booking.startDate) return 0;
+    const checkInDate = new Date(booking.startDate);
+    checkInDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffTime = checkInDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const canCheckout = (booking: any) => {
+    if (!booking.startDate) return false;
+    const checkInDate = new Date(booking.startDate);
+    checkInDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return checkInDate <= today;
+  };
+
   return (
     <div className="px-3 sm:px-5 lg:px-6 py-4 sm:py-5 lg:py-6 max-w-full">
-      {/* Room Info Cards */}
-      <div className="mb-4 sm:mb-5 lg:mb-6 flex flex-col lg:flex-row gap-3 sm:gap-4 w-full min-w-0">
-        {/* Access PIN Card */}
-        <div className="lg:flex-1 bg-blue-600 rounded-xl sm:rounded-2xl lg:rounded-3xl min-h-40 sm:min-h-[180px] lg:h-56 p-3 sm:p-4 relative overflow-hidden">
-          <div
-            className="absolute inset-0 opacity-60"
-            style={{
-              backgroundImage: "url('/pin-card.svg')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-            }}
-          />
+      {/* Room Info Cards - Only show if user has checked-in booking */}
+      {checkedInBooking && (
+        <div className="mb-4 sm:mb-5 lg:mb-6 flex flex-col lg:flex-row gap-3 sm:gap-4 w-full min-w-0">
+          {/* Access PIN Card */}
+          <div className="lg:flex-1 bg-blue-600 rounded-xl sm:rounded-2xl lg:rounded-3xl min-h-40 sm:min-h-[180px] lg:h-56 p-3 sm:p-4 relative overflow-hidden">
+            <div
+              className="absolute inset-0 opacity-60"
+              style={{
+                backgroundImage: "url('/pin-card.svg')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+              }}
+            />
 
-          <div className="relative z-10 h-full flex flex-col items-center justify-center gap-1.5 sm:gap-2">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <p className="text-white text-xs sm:text-sm lg:text-base">
-                Access PIN
-              </p>
-              <span className="bg-[#ecfdf3] text-[#027a48] text-[10px] sm:text-xs font-medium px-1.5 sm:px-2 py-0.5 rounded-full">
-                Active
-              </span>
-            </div>
+            <div className="relative z-10 h-full flex flex-col items-center justify-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <p className="text-white text-xs sm:text-sm lg:text-base">
+                  Access PIN
+                </p>
+                <span className="bg-[#ecfdf3] text-[#027a48] text-[10px] sm:text-xs font-medium px-1.5 sm:px-2 py-0.5 rounded-full">
+                  Active
+                </span>
+              </div>
 
-            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
-              <p className="text-white text-2xl sm:text-3xl lg:text-5xl font-semibold tracking-tight">
-                {showPin ? "8 1 4 2" : "* * * *"}
-              </p>
-              <button
-                onClick={() => setShowPin(!showPin)}
-                className="bg-white/20 backdrop-blur-md p-1 sm:p-1.5 lg:p-2 rounded-full"
-              >
-                {showPin ? (
-                  <Eye className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                ) : (
-                  <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
+              <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
+                <p className="text-white text-2xl sm:text-3xl lg:text-5xl font-semibold tracking-tight">
+                  {showPin && checkedInBooking.accessPIN
+                    ? checkedInBooking.accessPIN.split("").join(" ")
+                    : "* * * *"}
+                </p>
+                {checkedInBooking.accessPIN && (
+                  <button
+                    onClick={() => setShowPin(!showPin)}
+                    className="bg-white/20 backdrop-blur-md p-1 sm:p-1.5 lg:p-2 rounded-full"
+                  >
+                    {showPin ? (
+                      <Eye className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
+                    ) : (
+                      <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
+                    )}
+                  </button>
                 )}
-              </button>
+              </div>
+
+              <p className="text-[#e9f0fd] text-xs sm:text-sm lg:text-base text-center px-2 sm:px-4">
+                Enter this code on the door keypad
+              </p>
             </div>
+          </div>
 
-            <p className="text-[#e9f0fd] text-xs sm:text-sm lg:text-base text-center px-2 sm:px-4">
-              Enter this code on the door keypad
-            </p>
+          {/* Room Details Card */}
+          <div className="lg:flex-1 bg-[#d3e0fb] rounded-xl sm:rounded-2xl lg:rounded-3xl min-h-[140px] sm:min-h-40 lg:h-56 flex items-center justify-center p-3 sm:p-4">
+            <div className="text-center flex items-center flex-col gap-1.5 sm:gap-2 w-full">
+              <p className="text-[#717680] text-xs sm:text-sm lg:text-base">
+                YOUR ROOM
+              </p>
+              <p className="text-blue-600 text-lg sm:text-xl lg:text-[30px] font-semibold leading-tight">
+                Room {getRoomDisplay(checkedInBooking)} - {checkedInBooking.room?.category || "Standard Room"}
+              </p>
+              <p className="text-[#717680] text-xs sm:text-sm lg:text-base mb-1">
+                Check-out • {formatDate(checkedInBooking.endDate)}
+              </p>
+              <span className="inline-block bg-[#e9f0fd] text-[#19429d] text-xs sm:text-sm font-medium px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
+                {getRoomFloor(checkedInBooking)}
+              </span>
+              {canCheckout(checkedInBooking) ? (
+                <button
+                  onClick={handleCheckout}
+                  disabled={checkingOut}
+                  className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {checkingOut ? "Checking out..." : "Check Out"}
+                </button>
+              ) : (
+                <div className="mt-2 px-4 py-2 bg-gray-200 text-gray-600 text-sm font-medium rounded-lg text-center">
+                  Check-in in {getDaysUntilCheckIn(checkedInBooking)} day{getDaysUntilCheckIn(checkedInBooking) !== 1 ? "s" : ""}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Room Details Card */}
-        <div className="lg:flex-1 bg-[#d3e0fb] rounded-xl sm:rounded-2xl lg:rounded-3xl min-h-[140px] sm:min-h-40 lg:h-56 flex items-center justify-center p-3 sm:p-4">
-          <div className="text-center flex items-center flex-col gap-1.5 sm:gap-2">
-            <p className="text-[#717680] text-xs sm:text-sm lg:text-base">
-              YOUR ROOM
-            </p>
-            <p className="text-blue-600 text-lg sm:text-xl lg:text-[30px] font-semibold leading-tight">
-              Room C01 - Penthouse
-            </p>
-            <p className="text-[#717680] text-xs sm:text-sm lg:text-base mb-1">
-              Check-out • Jul 26, 2025
-            </p>
-            <span className="inline-block bg-[#e9f0fd] text-[#19429d] text-xs sm:text-sm font-medium px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
-              Second Floor
-            </span>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* My Bookings Section */}
       {userBookings.length > 0 && (
@@ -288,47 +388,55 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-neutral-100 border border-gray-200 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 flex flex-col gap-2.5 sm:gap-3 lg:gap-4">
-            {[
-              {
-                name: "Room Service",
-                color: "bg-[#dc6803]",
-                icon: "🛁",
-                id: 1,
-              },
-              { name: "Laundry", color: "bg-[#039855]", icon: "👔", id: 2 },
-              {
-                name: "SPA & Amenities",
-                color: "bg-[#1570ef]",
-                icon: "☕",
-                id: 3,
-              },
-            ].map((service, idx) => (
-              <button
-                key={idx}
-                onClick={() =>
-                  router.push(
-                    `/dashboard/services/request?service=${
-                      service.id
-                    }&name=${encodeURIComponent(service.name)}`
-                  )
-                }
-                className="bg-white border border-gray-200 rounded-lg sm:rounded-xl p-2.5 sm:p-3 lg:p-4 flex items-center justify-between hover:shadow-md transition-shadow min-w-0"
-              >
-                <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 min-w-0 flex-1">
-                  <div
-                    className={`${service.color} p-2 sm:p-2.5 lg:p-3 rounded-lg flex items-center justify-center flex-shrink-0`}
-                  >
-                    <span className="text-base sm:text-lg lg:text-xl">
-                      {service.icon}
-                    </span>
+            {quickServices.length === 0 ? (
+              <div className="text-center py-4 text-[#535862] text-sm">
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Loading services...
                   </div>
-                  <p className="text-[#252b37] text-xs sm:text-sm lg:text-xl font-medium truncate">
-                    {service.name}
-                  </p>
-                </div>
-                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#717680] flex-shrink-0" />
-              </button>
-            ))}
+                ) : (
+                  "No services available"
+                )}
+              </div>
+            ) : (
+              quickServices.map((service: any) => {
+                const categoryColors: { [key: string]: string } = {
+                  "room-service": "bg-[#dc6803]",
+                  "housekeeping": "bg-[#7e22ce]",
+                  "maintenance": "bg-[#0891b2]",
+                  "concierge": "bg-[#ea580c]",
+                  "other": "bg-[#1570ef]",
+                };
+                const color = categoryColors[service.category] || "bg-[#1570ef]";
+                
+                return (
+                  <button
+                    key={service._id}
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/services/request?service=${service._id}&name=${encodeURIComponent(service.name)}`
+                      )
+                    }
+                    className="bg-white border border-gray-200 rounded-lg sm:rounded-xl p-2.5 sm:p-3 lg:p-4 flex items-center justify-between hover:shadow-md transition-shadow min-w-0"
+                  >
+                    <div className="flex items-center gap-2 sm:gap-2.5 lg:gap-3 min-w-0 flex-1">
+                      <div
+                        className={`${color} p-2 sm:p-2.5 lg:p-3 rounded-lg flex items-center justify-center flex-shrink-0`}
+                      >
+                        <span className="text-base sm:text-lg lg:text-xl text-white">
+                          {service.name.charAt(0)}
+                        </span>
+                      </div>
+                      <p className="text-[#252b37] text-xs sm:text-sm lg:text-xl font-medium truncate">
+                        {service.name}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#717680] flex-shrink-0" />
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

@@ -4,7 +4,6 @@ import {
   LayoutGrid,
   Grid3x3,
   FileText,
-  Settings,
   LogOut,
   X,
 } from "lucide-react";
@@ -112,19 +111,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </button>
 
-            <button
-              onClick={() => router.push("/dashboard/settings")}
-              className={`flex items-center justify-between px-4 py-2 rounded h-10 ${
-                isActive("/dashboard/settings")
-                  ? "bg-blue-600 text-white"
-                  : "bg-[#0c214e] text-[#eaddeb] hover:bg-[#19429d]/20"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                <span className="text-base">Settings</span>
-              </div>
-            </button>
           </nav>
         </div>
 
@@ -252,22 +238,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       </div>
                     </button>
 
-                    <button
-                      onClick={() => {
-                        router.push("/dashboard/settings");
-                        setIsSidebarOpen(false);
-                      }}
-                      className={`flex items-center justify-between px-4 py-2 rounded h-10 ${
-                        isActive("/dashboard/settings")
-                          ? "bg-blue-600 text-white"
-                          : "bg-[#0c214e] text-[#eaddeb]"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Settings className="w-5 h-5" />
-                        <span className="text-base">Settings</span>
-                      </div>
-                    </button>
                   </nav>
                 </div>
 

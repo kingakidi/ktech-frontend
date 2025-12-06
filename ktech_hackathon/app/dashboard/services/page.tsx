@@ -40,13 +40,17 @@ const categoryColors: { [key: string]: string } = {
 export default function ServicesPage() {
   const router = useRouter();
   const { services, loading, fetchServices } = useServices();
-  const { activeBookings } = useBookings();
+  const { myBookings, fetchMyBookings } = useBookings();
   const [activeServices, setActiveServices] = useState<any[]>([]);
   const [hasCheckedInBooking, setHasCheckedInBooking] = useState(false);
   const [checkingBooking, setCheckingBooking] = useState(true);
 
   useEffect(() => {
     fetchServices();
+    fetchMyBookings().catch(() => {
+      // Silently handle error, user might not have bookings
+      setCheckingBooking(false);
+    });
   }, []);
 
   useEffect(() => {
@@ -57,12 +61,12 @@ export default function ServicesPage() {
 
   useEffect(() => {
     // Check if user has a checked-in booking
-    const checkedInBooking = activeBookings.find(
-      (booking) => booking.status === "checked-in" || booking.checkedIn === true
+    const checkedInBooking = myBookings.find(
+      (booking) => booking.status === "checked-in" || (booking as any).checkedIn === true
     );
     setHasCheckedInBooking(!!checkedInBooking);
     setCheckingBooking(false);
-  }, [activeBookings]);
+  }, [myBookings]);
 
   const handleServiceClick = (serviceId: string, serviceName: string) => {
     router.push(

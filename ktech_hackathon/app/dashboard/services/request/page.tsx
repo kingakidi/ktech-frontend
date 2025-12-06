@@ -19,7 +19,7 @@ function ServiceRequestContent() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeBooking, setActiveBooking] = useState<any>(null);
-  const { activeBookings } = useBookings();
+  const { myBookings, fetchMyBookings } = useBookings();
 
   const serviceId = searchParams.get("service");
   const serviceName = searchParams.get("name");
@@ -34,16 +34,12 @@ function ServiceRequestContent() {
     const fetchActiveBooking = async () => {
       try {
         setLoading(true);
-        // Get user's active bookings (confirmed or checked-in)
-        const response = await axiosInstance.get("/bookings/active");
-        const bookings = response.data.data?.bookings || [];
+        // Get user's own bookings
+        const bookings = await fetchMyBookings();
         
-        // Find the user's own checked-in booking
-        const user = storage.getUser();
+        // Find the user's checked-in booking from their own bookings
         const checkedInBooking = bookings.find(
-          (b: any) => 
-            (b.user?._id === user?._id || b.user === user?._id) &&
-            (b.status === "checked-in" || b.checkedIn === true)
+          (b: any) => b.status === "checked-in" || b.checkedIn === true
         );
         
         if (checkedInBooking) {
@@ -61,6 +57,7 @@ function ServiceRequestContent() {
     };
 
     fetchActiveBooking();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

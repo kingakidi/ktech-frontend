@@ -1,8 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { storage } from "@/lib/storage";
+import { LogOut } from "lucide-react";
 
 export default function Footer() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const isDashboard = pathname?.startsWith("/dashboard");
+
+  const handleLogout = async () => {
+    storage.clearAuth();
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
+
   return (
     <footer className="relative w-full max-w-[100vw] bg-blue-600 text-white overflow-hidden">
       {/* Footer Container with horizontal margins */}
@@ -34,6 +48,15 @@ export default function Footer() {
                   © 2025 luxehaven. All rights reserved. Designed by G Tech at
                   the KTech Fest Hackathon 2025.
                 </p>
+                {isDashboard && (
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                )}
               </div>
 
               {/* Description */}

@@ -180,30 +180,22 @@ export default function LiveMonitoringPage() {
 
   // Mock data removed - using real data from backend
 
-  // Calculate stats from real data
+  // Calculate stats from real data - only show active/available rooms
+  // The endpoint returns only available rooms for public, so we only count those
   const stats = {
-    totalRooms: displayRooms.length,
-    occupied: displayRooms.filter((r) => r.status === "occupied").length,
+    totalRooms: displayRooms.filter((r) => r.status === "available").length,
     available: displayRooms.filter((r) => r.status === "available").length,
-    cleaning: displayRooms.filter((r) => r.status === "cleaning").length,
-    maintenance: displayRooms.filter((r) => r.status === "maintenance").length,
   };
 
   const filterOptions = [
     { value: "all", label: "All Rooms" },
-    { value: "occupied", label: "Occupied" },
     { value: "available", label: "Available" },
-    { value: "cleaning", label: "Cleaning" },
-    { value: "maintenance", label: "Maintenance" },
   ];
 
-  // Count rooms by status for filter labels
+  // Count rooms by status for filter labels - only show available
   const roomCounts = {
-    all: displayRooms.length,
-    occupied: displayRooms.filter((r) => r.status === "occupied").length,
+    all: displayRooms.filter((r) => r.status === "available").length,
     available: displayRooms.filter((r) => r.status === "available").length,
-    cleaning: displayRooms.filter((r) => r.status === "cleaning").length,
-    maintenance: displayRooms.filter((r) => r.status === "maintenance").length,
   };
 
   const getFilterLabel = (value: string) => {
@@ -447,8 +439,8 @@ export default function LiveMonitoringPage() {
 
       {/* Statistics Cards */}
       <div className="bg-[#f5f5f5] border border-[#e9eaeb] rounded-3xl p-[15px] mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {/* Total Rooms */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+          {/* Active Rooms - Only show available rooms from endpoint */}
           <div className="bg-white rounded-[18px] p-4">
             <div className="flex items-end justify-between">
               <div>
@@ -456,53 +448,7 @@ export default function LiveMonitoringPage() {
                   className="text-base font-normal leading-6 text-[#535862] mb-1"
                   style={{ fontFamily: "Pretendard, sans-serif" }}
                 >
-                  Total Rooms
-                </p>
-                <p
-                  className="text-[30px] font-semibold leading-[38px] text-[#181d27]"
-                  style={{ fontFamily: "Pretendard, sans-serif" }}
-                >
-                  {stats.totalRooms}
-                </p>
-              </div>
-              <div className="bg-[#535862] p-3 rounded-lg">
-                <Bed className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </div>
-
-          {/* Occupied */}
-          <div className="bg-white rounded-[18px] p-4">
-            <div className="flex items-end justify-between">
-              <div>
-                <p
-                  className="text-base font-normal leading-6 text-[#535862] mb-1"
-                  style={{ fontFamily: "Pretendard, sans-serif" }}
-                >
-                  Occupied
-                </p>
-                <p
-                  className="text-[30px] font-semibold leading-[38px] text-[#181d27]"
-                  style={{ fontFamily: "Pretendard, sans-serif" }}
-                >
-                  {stats.occupied}
-                </p>
-              </div>
-              <div className="bg-[#1570ef] p-3 rounded-lg">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </div>
-
-          {/* Available */}
-          <div className="bg-white rounded-[18px] p-4">
-            <div className="flex items-end justify-between">
-              <div>
-                <p
-                  className="text-base font-normal leading-6 text-[#535862] mb-1"
-                  style={{ fontFamily: "Pretendard, sans-serif" }}
-                >
-                  Available
+                  Active Rooms
                 </p>
                 <p
                   className="text-[30px] font-semibold leading-[38px] text-[#181d27]"
@@ -512,53 +458,7 @@ export default function LiveMonitoringPage() {
                 </p>
               </div>
               <div className="bg-[#039855] p-3 rounded-lg">
-                <Users className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </div>
-
-          {/* Cleaning */}
-          <div className="bg-white rounded-[18px] p-4">
-            <div className="flex items-end justify-between">
-              <div>
-                <p
-                  className="text-base font-normal leading-6 text-[#535862] mb-1"
-                  style={{ fontFamily: "Pretendard, sans-serif" }}
-                >
-                  Cleaning
-                </p>
-                <p
-                  className="text-[30px] font-semibold leading-[38px] text-[#181d27]"
-                  style={{ fontFamily: "Pretendard, sans-serif" }}
-                >
-                  {stats.cleaning}
-                </p>
-              </div>
-              <div className="bg-[#ff9b00] p-3 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </div>
-
-          {/* Maintenance */}
-          <div className="bg-white rounded-[18px] p-4">
-            <div className="flex items-end justify-between">
-              <div>
-                <p
-                  className="text-base font-normal leading-6 text-[#535862] mb-1"
-                  style={{ fontFamily: "Pretendard, sans-serif" }}
-                >
-                  Maintenance
-                </p>
-                <p
-                  className="text-[30px] font-semibold leading-[38px] text-[#181d27]"
-                  style={{ fontFamily: "Pretendard, sans-serif" }}
-                >
-                  {stats.maintenance}
-                </p>
-              </div>
-              <div className="bg-[#d92d20] p-3 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-white" />
+                <Bed className="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
