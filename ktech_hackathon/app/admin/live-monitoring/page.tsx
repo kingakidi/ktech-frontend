@@ -89,16 +89,25 @@ export default function LiveMonitoringPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch bookings to get guest information
+  // Fetch active bookings to get guest information
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await axiosInstance.get("/bookings");
-        // Handle both response structures: data.bookings or doc
-        const bookingsData = response.data.data?.bookings || response.data.doc || [];
+        // Use the active bookings endpoint for better performance
+        const response = await axiosInstance.get("/bookings/active");
+        const bookingsData = response.data.data?.bookings || [];
         setBookings(bookingsData);
       } catch (error) {
-        console.error("Error fetching bookings:", error);
+        console.error("Error fetching active bookings:", error);
+        // Fallback to all bookings if active endpoint fails
+        try {
+          const fallbackResponse = await axiosInstance.get("/bookings");
+          const fallbackData = fallbackResponse.data.data?.bookings || fallbackResponse.data.doc || [];
+          setBookings(fallbackData);
+        } catch (fallbackError) {
+          console.error("Error fetching all bookings:", fallbackError);
+          setBookings([]);
+        }
       }
     };
     fetchBookings();

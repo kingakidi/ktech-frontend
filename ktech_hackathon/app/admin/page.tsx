@@ -8,29 +8,74 @@ import {
   ArrowUp,
   Upload,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useBookings } from "@/lib/hooks/useBookings";
+import axiosInstance from "@/lib/axios";
 
 export default function AdminDashboard() {
+  const { activeBookings, fetchActiveBookings } = useBookings();
+  const [totalGuests, setTotalGuests] = useState(0);
+  const [pendingRequests, setPendingRequests] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // Fetch active bookings
+        await fetchActiveBookings();
+        
+        // Fetch service requests for pending count
+        try {
+          const requestsResponse = await axiosInstance.get("/service-requests");
+          const requests = requestsResponse.data.data?.requests || requestsResponse.data.doc || [];
+          const pending = requests.filter((req: any) => 
+            req.status === "pending" || req.status === "assigned"
+          ).length;
+          setPendingRequests(pending);
+        } catch (err) {
+          console.error("Error fetching service requests:", err);
+        }
+      } catch (err) {
+        console.error("Error loading dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Calculate total unique guests from active bookings
+  useEffect(() => {
+    if (activeBookings.length > 0) {
+      const uniqueGuests = new Set(
+        activeBookings.map((booking) => booking.user?._id || booking.user)
+      );
+      setTotalGuests(uniqueGuests.size);
+    }
+  }, [activeBookings]);
   const statsCards = [
     {
       title: "Total Guests",
-      value: "246",
-      change: "+12% from last month",
+      value: loading ? "..." : totalGuests.toString(),
+      change: "Currently active",
       icon: Users,
       iconBg: "bg-[#1570ef]",
       iconColor: "text-white",
     },
     {
       title: "Active Rooms",
-      value: "87",
-      change: "+74% from last month",
+      value: loading ? "..." : activeBookings.length.toString(),
+      change: "Currently booked",
       icon: Hotel,
       iconBg: "bg-[#6938ef]",
       iconColor: "text-white",
     },
     {
       title: "Pending Requests",
-      value: "23",
-      change: "+12% from last month",
+      value: loading ? "..." : pendingRequests.toString(),
+      change: "Requires attention",
       icon: FileText,
       iconBg: "bg-[#dc6803]",
       iconColor: "text-white",
@@ -45,80 +90,42 @@ export default function AdminDashboard() {
     },
   ];
 
-  const recentActivities = [
-    {
-      name: "Sarah Miller",
-      action: "Check-in • Room A04",
-      status: "Completed",
-      statusColor: "bg-[#ecfdf3] text-[#027a48]",
-      time: "2 minutes ago",
-      borderColor: "bg-[#039855]",
-    },
-    {
-      name: "Michael Chen",
-      action: "Check-in • Room B04",
-      status: "Pending",
-      statusColor: "bg-[#fffaeb] text-[#b54708]",
-      time: "5 minutes ago",
-      borderColor: "bg-[#dc6803]",
-    },
-    {
-      name: "Emma Wilson",
-      action: "Check-in • Room C01",
-      status: "Completed",
-      statusColor: "bg-[#ecfdf3] text-[#027a48]",
-      time: "2 minutes ago",
-      borderColor: "bg-[#039855]",
-    },
-    {
-      name: "Emma Wilson",
-      action: "Check-in • Room C01",
-      status: "Completed",
-      statusColor: "bg-[#ecfdf3] text-[#027a48]",
-      time: "2 minutes ago",
-      borderColor: "bg-[#039855]",
-    },
-    {
-      name: "Emma Wilson",
-      action: "Check-in • Room C01",
-      status: "Completed",
-      statusColor: "bg-[#ecfdf3] text-[#027a48]",
-      time: "2 minutes ago",
-      borderColor: "bg-[#039855]",
-    },
-    {
-      name: "Emma Wilson",
-      action: "Check-in • Room C01",
-      status: "Completed",
-      statusColor: "bg-[#ecfdf3] text-[#027a48]",
-      time: "2 minutes ago",
-      borderColor: "bg-[#039855]",
-    },
-    {
-      name: "Emma Wilson",
-      action: "Check-in • Room C01",
-      status: "Completed",
-      statusColor: "bg-[#ecfdf3] text-[#027a48]",
-      time: "2 minutes ago",
-      borderColor: "bg-[#039855]",
-    },
-    {
-      name: "Emma Wilson",
-      action: "Check-in • Room C01",
-      status: "Completed",
-      statusColor: "bg-[#ecfdf3] text-[#027a48]",
-      time: "2 minutes ago",
-      borderColor: "bg-[#039855]",
-    },
-    {
-      name: "Emma Wilson",
-      action: "Check-in • Room C01",
-      status: "Completed",
-      statusColor: "bg-[#ecfdf3] text-[#027a48]",
-      time: "2 minutes ago",
-      borderColor: "bg-[#039855]",
-    },
-  ];
+  // Generate recent activities from active bookings
+  const recentActivities = activeBookings.slice(0, 10).map((booking) => {
+    const userName = booking.user?.firstName && booking.user?.lastName
+      ? `${booking.user.firstName} ${booking.user.lastName}`
+      : booking.user?.email || "Guest";
+    const roomName = booking.room?.number && booking.room?.alphabet
+      ? `Room ${booking.room.alphabet}${booking.room.number.toString().padStart(2, "0")}`
+      : booking.room?.roomNumber || "Room";
+    const status = booking.status === "checked-in" ? "Completed" : "Pending";
+    const statusColor = status === "Completed" 
+      ? "bg-[#ecfdf3] text-[#027a48]"
+      : "bg-[#fffaeb] text-[#b54708]";
+    const borderColor = status === "Completed" 
+      ? "bg-[#039855]"
+      : "bg-[#dc6803]";
+    
+    const createdAt = new Date(booking.createdAt);
+    const now = new Date();
+    const diffMinutes = Math.floor((now.getTime() - createdAt.getTime()) / 60000);
+    const timeAgo = diffMinutes < 1 
+      ? "Just now"
+      : diffMinutes < 60
+      ? `${diffMinutes} minute${diffMinutes > 1 ? "s" : ""} ago`
+      : Math.floor(diffMinutes / 60) < 24
+      ? `${Math.floor(diffMinutes / 60)} hour${Math.floor(diffMinutes / 60) > 1 ? "s" : ""} ago`
+      : `${Math.floor(diffMinutes / 1440)} day${Math.floor(diffMinutes / 1440) > 1 ? "s" : ""} ago`;
+
+    return {
+      name: userName,
+      action: `${status === "Completed" ? "Check-in" : "Booking"} • ${roomName}`,
+      status,
+      statusColor,
+      time: timeAgo,
+      borderColor,
+    };
+  });
 
   const staffMembers = Array(9).fill({
     name: "Alice Johnson",
@@ -217,7 +224,16 @@ export default function AdminDashboard() {
           </div>
           <div className="px-4 pb-4 overflow-y-auto max-h-[700px]">
             <div className="flex flex-col gap-5">
-              {recentActivities.map((activity, index) => (
+              {loading ? (
+                <div className="text-center py-8 text-[#535862]">
+                  Loading activities...
+                </div>
+              ) : recentActivities.length === 0 ? (
+                <div className="text-center py-8 text-[#535862]">
+                  No recent activities
+                </div>
+              ) : (
+                recentActivities.map((activity, index) => (
                 <div key={index} className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -262,7 +278,8 @@ export default function AdminDashboard() {
                     <div className="h-0.5 bg-[#e9eaeb] rounded-lg" />
                   )}
                 </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
