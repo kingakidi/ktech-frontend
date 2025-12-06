@@ -24,6 +24,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [serviceRequests, setServiceRequests] = useState<any[]>([]);
+  const [serviceRequestsLoading, setServiceRequestsLoading] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -260,14 +262,6 @@ export default function AdminDashboard() {
     })
     .slice(0, 10);
 
-  const staffMembers = Array(9).fill({
-    name: "Alice Johnson",
-    role: "Housekeeping",
-    status: "Active",
-    statusColor: "bg-[#ecfdf3] text-[#027a48]",
-    tasks: "8 tasks",
-  });
-
   return (
     <div className="p-6 bg-white min-h-full">
       {/* Page Header */}
@@ -484,64 +478,143 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Staff Status */}
+        {/* Service Requests */}
         <div className="bg-white border border-[#e9eaeb] rounded-2xl overflow-hidden">
-          <div className="p-4">
-            <h3
-              className="text-base font-medium leading-6 text-black"
-              style={{ fontFamily: "Geist, sans-serif" }}
-            >
-              Staff Status
-            </h3>
+          <div className="p-4 border-b border-[#e9eaeb]">
+            <div className="flex items-center justify-between">
+              <h3
+                className="text-base font-medium leading-6 text-black"
+                style={{ fontFamily: "Geist, sans-serif" }}
+              >
+                Service Requests
+              </h3>
+              <span
+                className="text-xs text-[#535862]"
+                style={{ fontFamily: "Geist, sans-serif" }}
+              >
+                {serviceRequests.length} total
+              </span>
+            </div>
           </div>
           <div className="px-4 pb-4 overflow-y-auto max-h-[700px]">
             <div className="flex flex-col gap-5">
-              {staffMembers.map((staff, index) => (
-                <div key={index} className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-[#e9f0fd] flex items-center justify-center">
-                        <Users className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div className="flex flex-col gap-0.5 min-w-[118px]">
-                        <p
-                          className="text-sm leading-5 text-[#181d27]"
-                          style={{ fontFamily: "Geist, sans-serif" }}
-                        >
-                          {staff.name}
-                        </p>
-                        <p
-                          className="text-xs leading-[18px] text-[#717680]"
-                          style={{ fontFamily: "Geist, sans-serif" }}
-                        >
-                          {staff.role}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-0.5 items-end">
-                      <div
-                        className={`${staff.statusColor} px-2 py-0.5 rounded-2xl text-center`}
-                      >
-                        <p
-                          className="text-xs leading-[18px] font-medium"
-                          style={{ fontFamily: "Pretendard, sans-serif" }}
-                        >
-                          {staff.status}
-                        </p>
-                      </div>
-                      <p
-                        className="text-xs leading-[18px] text-[#717680] text-center"
-                        style={{ fontFamily: "Geist, sans-serif" }}
-                      >
-                        {staff.tasks}
-                      </p>
-                    </div>
-                  </div>
-                  {index < staffMembers.length - 1 && (
-                    <div className="h-0.5 bg-[#e9eaeb] rounded-lg" />
-                  )}
+              {loading ? (
+                <div className="text-center py-8 text-[#535862]">
+                  Loading requests...
                 </div>
-              ))}
+              ) : serviceRequests.length === 0 ? (
+                <div className="text-center py-8 text-[#535862]">
+                  No service requests
+                </div>
+              ) : (
+                serviceRequests.slice(0, 10).map((request, index) => {
+                  const guestName =
+                    request.user?.firstName && request.user?.lastName
+                      ? `${request.user.firstName} ${request.user.lastName}`
+                      : request.user?.email || "Guest";
+                  const roomName =
+                    request.room?.alphabet && request.room?.number
+                      ? `Room ${request.room.alphabet}${request.room.number
+                          .toString()
+                          .padStart(2, "0")}`
+                      : request.room?.roomNumber || "Room";
+                  const serviceName =
+                    request.service?.name || request.type || "Service";
+                  const status = request.status || "pending";
+                  const statusColor =
+                    status === "completed"
+                      ? "bg-[#ecfdf3] text-[#027a48]"
+                      : status === "in-progress"
+                      ? "bg-[#eff8ff] text-[#175cd3]"
+                      : status === "assigned"
+                      ? "bg-[#fef3f2] text-[#b42318]"
+                      : "bg-[#fffaeb] text-[#b54708]";
+                  const borderColor =
+                    status === "completed"
+                      ? "bg-[#039855]"
+                      : status === "in-progress"
+                      ? "bg-[#1570ef]"
+                      : status === "assigned"
+                      ? "bg-[#d92d20]"
+                      : "bg-[#dc6803]";
+
+                  const createdAt = new Date(request.createdAt);
+                  const now = new Date();
+                  const diffMinutes = Math.floor(
+                    (now.getTime() - createdAt.getTime()) / 60000
+                  );
+                  const timeAgo =
+                    diffMinutes < 1
+                      ? "Just now"
+                      : diffMinutes < 60
+                      ? `${diffMinutes} minute${diffMinutes > 1 ? "s" : ""} ago`
+                      : Math.floor(diffMinutes / 60) < 24
+                      ? `${Math.floor(diffMinutes / 60)} hour${
+                          Math.floor(diffMinutes / 60) > 1 ? "s" : ""
+                        } ago`
+                      : `${Math.floor(diffMinutes / 1440)} day${
+                          Math.floor(diffMinutes / 1440) > 1 ? "s" : ""
+                        } ago`;
+
+                  return (
+                    <div
+                      key={request._id || index}
+                      className="flex flex-col gap-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-1">
+                          <div
+                            className={`${borderColor} w-1 h-[45px] rounded-lg`}
+                          />
+                          <div className="flex flex-col gap-0.5 min-w-[118px] flex-1">
+                            <p
+                              className="text-sm leading-5 text-[#181d27]"
+                              style={{ fontFamily: "Geist, sans-serif" }}
+                            >
+                              {guestName}
+                            </p>
+                            <p
+                              className="text-xs leading-[18px] text-[#717680]"
+                              style={{ fontFamily: "Geist, sans-serif" }}
+                            >
+                              {serviceName} • {roomName}
+                            </p>
+                            {request.description && (
+                              <p
+                                className="text-xs leading-[18px] text-[#717680] line-clamp-1 mt-1"
+                                style={{ fontFamily: "Geist, sans-serif" }}
+                              >
+                                {request.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-0.5 items-end">
+                          <div
+                            className={`${statusColor} px-2 py-0.5 rounded-2xl text-center`}
+                          >
+                            <p
+                              className="text-xs leading-[18px] font-medium capitalize"
+                              style={{ fontFamily: "Pretendard, sans-serif" }}
+                            >
+                              {status}
+                            </p>
+                          </div>
+                          <p
+                            className="text-xs leading-[18px] text-[#717680] text-center"
+                            style={{ fontFamily: "Geist, sans-serif" }}
+                          >
+                            {timeAgo}
+                          </p>
+                        </div>
+                      </div>
+                      {index < Math.min(serviceRequests.length, 10) - 1 && (
+                        <div className="h-0.5 bg-[#e9eaeb] rounded-lg" />
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

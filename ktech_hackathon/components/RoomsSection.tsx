@@ -45,8 +45,28 @@ export default function RoomsSection() {
       const roomsData = response.data.data?.rooms || [];
       // Show only first 8 rooms on homepage
       setRooms(roomsData.slice(0, 8));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching rooms:", error);
+      
+      // Log more details for debugging
+      if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+        console.error("Network Error Details:", {
+          message: error.message,
+          code: error.code,
+          config: {
+            url: error.config?.url,
+            baseURL: error.config?.baseURL,
+            method: error.config?.method,
+          },
+        });
+        
+        // Check if backend is accessible
+        const baseURL = error.config?.baseURL || axiosInstance.defaults.baseURL;
+        console.error(`Attempting to connect to: ${baseURL}/rooms`);
+      }
+      
+      // Set empty array on error to prevent UI issues
+      setRooms([]);
     } finally {
       setLoading(false);
     }

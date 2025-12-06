@@ -121,11 +121,6 @@ export default function ConfirmPage({ params }: PageProps) {
   };
 
   const handleConfirmBooking = async () => {
-    if (!isAuthenticated) {
-      setShowSignUp(true);
-      return;
-    }
-
     if (!bookingData || !room) {
       toast.error("Missing booking information");
       return;
@@ -367,19 +362,25 @@ export default function ConfirmPage({ params }: PageProps) {
                   </Button>
                 </Link>
                 <Button
-                  onClick={handleConfirmBooking}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setShowSignUp(true);
+                    } else {
+                      handleConfirmBooking();
+                    }
+                  }}
                   disabled={creating}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base px-5 py-6 rounded-[50px] shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] disabled:opacity-50 disabled:cursor-not-allowed min-h-[56px] flex items-center justify-center gap-2"
                 >
                   {creating ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Confirming...
+                      Booking...
                     </>
                   ) : isAuthenticated ? (
                     "Confirm Booking"
                   ) : (
-                    "Sign In to Confirm"
+                    "Sign In to Book"
                   )}
                 </Button>
               </div>
@@ -410,10 +411,10 @@ export default function ConfirmPage({ params }: PageProps) {
                   <div className="flex items-center gap-1">
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4 text-[#717680]" />
-                    <span className="text-xs text-[#717680]">
+                      <span className="text-xs text-[#717680]">
                         Up to {room.maxGuest} guest
                         {room.maxGuest > 1 ? "s" : ""}
-                    </span>
+                      </span>
                     </div>
                     <div className="w-1 h-1 rounded-full bg-[#a4a7ae]" />
                     <div className="flex items-center gap-1">
@@ -427,9 +428,9 @@ export default function ConfirmPage({ params }: PageProps) {
                         <div className="w-1 h-1 rounded-full bg-[#a4a7ae]" />
                         <div className="flex items-center gap-1">
                           <Eye className="w-4 h-4 text-[#717680]" />
-                    <span className="text-xs text-[#717680]">
+                          <span className="text-xs text-[#717680]">
                             Ocean View
-                    </span>
+                          </span>
                         </div>
                       </>
                     )}
@@ -542,6 +543,15 @@ export default function ConfirmPage({ params }: PageProps) {
           setShowSignUp(false);
           setTimeout(() => setShowLogin(true), 300);
         }}
+        onSuccess={() => {
+          // After successful signup and login, update auth state
+          // This will change the button from "Sign In to Book" to "Confirm Booking"
+          checkAuth();
+          // Small delay to ensure tokens are stored
+          setTimeout(() => {
+            checkAuth();
+          }, 200);
+        }}
       />
 
       {/* Login Dialog */}
@@ -556,6 +566,15 @@ export default function ConfirmPage({ params }: PageProps) {
         onSwitchToSignUp={() => {
           setShowLogin(false);
           setTimeout(() => setShowSignUp(true), 300);
+        }}
+        onSuccess={() => {
+          // After successful login, update auth state
+          // This will change the button from "Sign In to Book" to "Confirm Booking"
+          checkAuth();
+          // Small delay to ensure tokens are stored
+          setTimeout(() => {
+            checkAuth();
+          }, 200);
         }}
       />
     </>

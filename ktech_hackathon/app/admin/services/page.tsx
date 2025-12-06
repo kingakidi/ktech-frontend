@@ -39,10 +39,13 @@ export default function ServicesPage() {
 
   const handleToggleStatus = async (service: any) => {
     try {
-      await toggleServiceStatus(service._id, !service.active);
+      const newStatus = !service.active;
+      await toggleServiceStatus(service._id, newStatus);
+      // Refresh services list
       await fetchServices();
     } catch (error) {
       // Error handled in hook
+      console.error("Error toggling service status:", error);
     }
   };
 

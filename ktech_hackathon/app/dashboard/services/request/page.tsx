@@ -1,144 +1,123 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Send,
-  UtensilsCrossed,
-  Shirt,
-  Sparkles,
-  Brush,
-  Hotel,
-  Wrench,
-  Dumbbell,
-  ChefHat,
-  Car,
-  LucideIcon,
+  Loader2,
 } from "lucide-react";
-
-const iconMap: { [key: string]: LucideIcon } = {
-  UtensilsCrossed,
-  Shirt,
-  Sparkles,
-  Brush,
-  Hotel,
-  Wrench,
-  Dumbbell,
-  ChefHat,
-  Car,
-};
-
-const services = [
-  {
-    id: 1,
-    name: "Room Service",
-    icon: "UtensilsCrossed",
-    color: "bg-[#dc6803]",
-  },
-  {
-    id: 2,
-    name: "Laundry",
-    icon: "Shirt",
-    color: "bg-[#039855]",
-  },
-  {
-    id: 3,
-    name: "SPA & Amenities",
-    icon: "Sparkles",
-    color: "bg-[#1570ef]",
-  },
-  {
-    id: 4,
-    name: "Housekeeping",
-    icon: "Brush",
-    color: "bg-[#7e22ce]",
-  },
-  {
-    id: 5,
-    name: "Concierge",
-    icon: "Hotel",
-    color: "bg-[#ea580c]",
-  },
-  {
-    id: 6,
-    name: "Maintenance",
-    icon: "Wrench",
-    color: "bg-[#0891b2]",
-  },
-  {
-    id: 7,
-    name: "Gym & Fitness",
-    icon: "Dumbbell",
-    color: "bg-[#dc2626]",
-  },
-  {
-    id: 8,
-    name: "Restaurant",
-    icon: "ChefHat",
-    color: "bg-[#ca8a04]",
-  },
-  {
-    id: 9,
-    name: "Transportation",
-    icon: "Car",
-    color: "bg-[#16a34a]",
-  },
-];
+import axiosInstance from "@/lib/axios";
+import { toast } from "react-toastify";
+import { useBookings } from "@/lib/hooks/useBookings";
+import { storage } from "@/lib/storage";
 
 function ServiceRequestContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [activeBooking, setActiveBooking] = useState<any>(null);
+  const { activeBookings } = useBookings();
 
   const serviceId = searchParams.get("service");
   const serviceName = searchParams.get("name");
-  const service = services.find((s) => s.id === Number(serviceId));
 
   const [formData, setFormData] = useState({
-    priority: "Normal",
-    details: "",
+    priority: "medium",
+    description: "",
   });
 
-  // Get guest info from localStorage or session (in production, this would come from auth)
-  const guestInfo = {
-    roomNumber: "A01", // This would come from authenticated user session
-    guestName: "Daniel Kyle", // This would come from authenticated user session
-  };
+  // Get user's active booking - must be checked in
+  useEffect(() => {
+    const fetchActiveBooking = async () => {
+      try {
+        setLoading(true);
+        // Get user's active bookings (confirmed or checked-in)
+        const response = await axiosInstance.get("/bookings/active");
+        const bookings = response.data.data?.bookings || [];
+        
+        // Find the user's own checked-in booking
+        const user = storage.getUser();
+        const checkedInBooking = bookings.find(
+          (b: any) => 
+            (b.user?._id === user?._id || b.user === user?._id) &&
+            (b.status === "checked-in" || b.checkedIn === true)
+        );
+        
+        if (checkedInBooking) {
+          setActiveBooking(checkedInBooking);
+        } else {
+          toast.error("Please check in to your booking first before requesting services.");
+          router.push("/dashboard");
+        }
+      } catch (error: any) {
+        console.error("Error fetching active booking:", error);
+        toast.error("Failed to load booking information");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActiveBooking();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!activeBooking) {
+      toast.error("No active booking found");
+      return;
+    }
+
+    if (!serviceId) {
+      toast.error("Service not selected");
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      toast.error("Please provide request details");
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // Create service request with guest info
-    const request = {
-      id: Date.now().toString(),
-      service: serviceName || service?.name || "",
-      roomNumber: guestInfo.roomNumber,
-      guestName: guestInfo.guestName,
-      priority: formData.priority,
-      details: formData.details,
-      status: "Pending",
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      // Map priority to backend format
+      const priorityMap: { [key: string]: string } = {
+        Low: "low",
+        Normal: "medium",
+        High: "high",
+        Urgent: "urgent",
+      };
 
-    // Store in localStorage (in production, this would be an API call)
-    const existingRequests = JSON.parse(
-      localStorage.getItem("serviceRequests") || "[]"
-    );
-    existingRequests.push(request);
-    localStorage.setItem("serviceRequests", JSON.stringify(existingRequests));
+      const requestData = {
+        booking: activeBooking._id,
+        service: serviceId,
+        type: serviceName || "service",
+        description: formData.description,
+        priority: priorityMap[formData.priority] || formData.priority,
+      };
 
-    // Simulate API delay
-    setTimeout(() => {
+      const response = await axiosInstance.post("/service-requests", requestData);
+
+      if (response.data.status === "success") {
+        setShowSuccess(true);
+        toast.success("Service request submitted successfully!");
+
+        setTimeout(() => {
+          router.push("/dashboard/requests");
+        }, 2000);
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message || "Failed to submit service request";
+      toast.error(errorMessage);
+      console.error("Error submitting service request:", error);
+    } finally {
       setIsSubmitting(false);
-      setShowSuccess(true);
-
-      setTimeout(() => {
-        router.push("/dashboard/services");
-      }, 2000);
-    }, 1000);
+    }
   };
 
   return (
@@ -160,23 +139,15 @@ function ServiceRequestContent() {
       {/* Page Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          {service &&
-            (() => {
-              const IconComponent = iconMap[service.icon];
-              return (
-                <div
-                  className={`${service.color} p-2 sm:p-3 rounded-lg flex items-center justify-center`}
-                >
-                  <IconComponent className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
-                </div>
-              );
-            })()}
+          <div className="bg-blue-600 p-2 sm:p-3 rounded-lg flex items-center justify-center">
+            <Send className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+          </div>
           <div>
             <h2
               className="font-semibold text-lg sm:text-xl lg:text-2xl text-[#181d27] leading-tight"
               style={{ fontFamily: "Geist, sans-serif" }}
             >
-              Request {serviceName || service?.name}
+              Request {serviceName || "Service"}
             </h2>
             <p
               className="text-sm sm:text-base text-[#535862]"
@@ -211,87 +182,105 @@ function ServiceRequestContent() {
         </div>
       )}
 
-      {/* Request Form */}
-      <div className="bg-white border border-[#e9eaeb] rounded-2xl p-4 sm:p-6">
-        {/* Guest Info Display */}
-        <div className="bg-[#f0f5fe] border border-[#d3e0fb] rounded-lg p-4 mb-5">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <span
-                className="text-sm text-[#717680]"
-                style={{ fontFamily: "Geist, sans-serif" }}
-              >
-                Guest:
-              </span>
-              <span
-                className="text-sm font-medium text-[#181d27]"
-                style={{ fontFamily: "Geist, sans-serif" }}
-              >
-                {guestInfo.guestName}
-              </span>
-            </div>
-            <div className="hidden sm:block w-px h-4 bg-[#d3e0fb]" />
-            <div className="flex items-center gap-2">
-              <span
-                className="text-sm text-[#717680]"
-                style={{ fontFamily: "Geist, sans-serif" }}
-              >
-                Room:
-              </span>
-              <span
-                className="text-sm font-medium text-[#181d27]"
-                style={{ fontFamily: "Geist, sans-serif" }}
-              >
-                {guestInfo.roomNumber}
-              </span>
-            </div>
-          </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {/* Priority */}
-          <div className="flex flex-col gap-1.5">
-            <label
-              className="text-sm font-medium text-[#414651]"
-              style={{ fontFamily: "Pretendard, sans-serif" }}
-            >
-              Priority
-            </label>
-            <select
-              value={formData.priority}
-              onChange={(e) =>
-                setFormData({ ...formData, priority: e.target.value })
-              }
-              className="w-full px-3.5 py-2.5 bg-white border border-[#d5d7da] rounded-lg shadow-sm text-[#181d27] appearance-none focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-              style={{ fontFamily: "Geist, sans-serif", fontSize: "16px" }}
-            >
-              <option value="Low">Low</option>
-              <option value="Normal">Normal</option>
-              <option value="High">High</option>
-              <option value="Urgent">Urgent</option>
-            </select>
+      ) : !activeBooking ? (
+        <div className="bg-white border border-[#e9eaeb] rounded-2xl p-8 text-center">
+          <p className="text-[#535862] mb-4">No active booking found.</p>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white border border-[#e9eaeb] rounded-2xl p-4 sm:p-6">
+          {/* Guest Info Display */}
+          <div className="bg-[#f0f5fe] border border-[#d3e0fb] rounded-lg p-4 mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-sm text-[#717680]"
+                  style={{ fontFamily: "Geist, sans-serif" }}
+                >
+                  Guest:
+                </span>
+                <span
+                  className="text-sm font-medium text-[#181d27]"
+                  style={{ fontFamily: "Geist, sans-serif" }}
+                >
+                  {activeBooking.user?.firstName && activeBooking.user?.lastName
+                    ? `${activeBooking.user.firstName} ${activeBooking.user.lastName}`
+                    : activeBooking.user?.email || "Guest"}
+                </span>
+              </div>
+              <div className="hidden sm:block w-px h-4 bg-[#d3e0fb]" />
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-sm text-[#717680]"
+                  style={{ fontFamily: "Geist, sans-serif" }}
+                >
+                  Room:
+                </span>
+                <span
+                  className="text-sm font-medium text-[#181d27]"
+                  style={{ fontFamily: "Geist, sans-serif" }}
+                >
+                  {activeBooking.room?.alphabet && activeBooking.room?.number
+                    ? `${activeBooking.room.alphabet}${activeBooking.room.number.toString().padStart(2, "0")}`
+                    : activeBooking.room?.roomNumber || "N/A"}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Details */}
-          <div className="flex flex-col gap-1.5">
-            <label
-              className="text-sm font-medium text-[#414651]"
-              style={{ fontFamily: "Pretendard, sans-serif" }}
-            >
-              Request Details
-            </label>
-            <textarea
-              required
-              value={formData.details}
-              onChange={(e) =>
-                setFormData({ ...formData, details: e.target.value })
-              }
-              placeholder="Please provide details about your request..."
-              rows={5}
-              className="w-full px-3.5 py-2.5 bg-white border border-[#d5d7da] rounded-lg shadow-sm text-[#181d27] placeholder:text-[#717680] focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none"
-              style={{ fontFamily: "Geist, sans-serif", fontSize: "16px" }}
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {/* Priority */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                className="text-sm font-medium text-[#414651]"
+                style={{ fontFamily: "Pretendard, sans-serif" }}
+              >
+                Priority
+              </label>
+              <select
+                value={formData.priority}
+                onChange={(e) =>
+                  setFormData({ ...formData, priority: e.target.value })
+                }
+                className="w-full px-3.5 py-2.5 bg-white border border-[#d5d7da] rounded-lg shadow-sm text-[#181d27] appearance-none focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                style={{ fontFamily: "Geist, sans-serif", fontSize: "16px" }}
+              >
+                <option value="low">Low</option>
+                <option value="medium">Normal</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+
+            {/* Details */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                className="text-sm font-medium text-[#414651]"
+                style={{ fontFamily: "Pretendard, sans-serif" }}
+              >
+                Request Details *
+              </label>
+              <textarea
+                required
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                placeholder="Please provide details about your request..."
+                rows={5}
+                className="w-full px-3.5 py-2.5 bg-white border border-[#d5d7da] rounded-lg shadow-sm text-[#181d27] placeholder:text-[#717680] focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none"
+                style={{ fontFamily: "Geist, sans-serif", fontSize: "16px" }}
+              />
+            </div>
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -336,7 +325,8 @@ function ServiceRequestContent() {
             </button>
           </div>
         </form>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

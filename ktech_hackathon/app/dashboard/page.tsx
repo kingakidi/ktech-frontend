@@ -1,10 +1,13 @@
 "use client";
 
-import { Eye, EyeOff, Clock, ChevronRight, Sparkles, Zap } from "lucide-react";
+import { Eye, EyeOff, Clock, ChevronRight, Sparkles, Zap, Calendar, MapPin, CheckCircle } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axiosInstance from "@/lib/axios";
+import { useBookings } from "@/lib/hooks/useBookings";
+import { storage } from "@/lib/storage";
+import { toast } from "react-toastify";
 
 interface ServiceRequest {
   _id: string;
@@ -22,35 +25,77 @@ export default function DashboardPage() {
   const [showPin, setShowPin] = useState(false);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userBookings, setUserBookings] = useState<any[]>([]);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const router = useRouter();
+  const { activeBookings, fetchActiveBookings } = useBookings();
 
   useEffect(() => {
-    const fetchServiceRequests = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await axiosInstance.get("/service-requests/my-requests");
-        const requests = response.data.data?.requests || [];
-        // Get only active requests (pending, assigned, in-progress)
+        
+        // Fetch service requests
+        const requestsResponse = await axiosInstance.get("/service-requests/my-requests");
+        const requests = requestsResponse.data.data?.requests || [];
         const activeRequests = requests.filter(
           (req: ServiceRequest) =>
             req.status === "pending" ||
             req.status === "assigned" ||
             req.status === "in-progress"
         );
-        setServiceRequests(activeRequests.slice(0, 4)); // Show max 4 requests
+        setServiceRequests(activeRequests.slice(0, 4));
+
+        // Fetch user bookings
+        try {
+          const bookingsResponse = await axiosInstance.get("/bookings/my-bookings");
+          const myBookings = bookingsResponse.data.data?.bookings || [];
+          setUserBookings(myBookings);
+        } catch (bookingError) {
+          console.error("Error fetching user bookings:", bookingError);
+          setUserBookings([]);
+        }
       } catch (error) {
-        console.error("Error fetching service requests:", error);
+        console.error("Error fetching data:", error);
         setServiceRequests([]);
+        setUserBookings([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchServiceRequests();
+    fetchData();
+    fetchActiveBookings();
   }, []);
 
   const handleFoodClick = () => {
     router.push("/dashboard/services/request?service=8&name=Restaurant");
+  };
+
+  const handleBookingClick = (booking: any) => {
+    // If booking is checked in, show services
+    if (booking.status === "checked-in" || booking.checkedIn === true) {
+      setSelectedBooking(booking);
+      router.push("/dashboard/services");
+    } else {
+      toast.info("Please check in first to access services");
+    }
+  };
+
+  const getRoomDisplay = (booking: any) => {
+    if (booking.room?.alphabet && booking.room?.number) {
+      return `${booking.room.alphabet}${booking.room.number.toString().padStart(2, "0")}`;
+    }
+    return booking.room?.roomNumber || "N/A";
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
   return (
@@ -119,6 +164,68 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* My Bookings Section */}
+      {userBookings.length > 0 && (
+        <div className="mb-4 sm:mb-5 lg:mb-6">
+          <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-[#181d27] mb-3 sm:mb-4">
+            My Bookings
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {userBookings.map((booking) => {
+              const isCheckedIn = booking.status === "checked-in" || booking.checkedIn === true;
+              const statusColor = isCheckedIn
+                ? "bg-[#ecfdf3] text-[#027a48]"
+                : booking.status === "confirmed"
+                ? "bg-[#eff8ff] text-[#175cd3]"
+                : booking.status === "pending"
+                ? "bg-[#fffaeb] text-[#b54708]"
+                : "bg-neutral-100 text-[#414651]";
+
+              return (
+                <button
+                  key={booking._id}
+                  onClick={() => handleBookingClick(booking)}
+                  className="bg-white border border-[#e9eaeb] rounded-xl sm:rounded-2xl p-4 text-left hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MapPin className="w-4 h-4 text-[#717680]" />
+                        <p className="text-sm font-semibold text-[#181d27]">
+                          Room {getRoomDisplay(booking)}
+                        </p>
+                      </div>
+                      <p className="text-xs text-[#535862]">
+                        {booking.room?.category || "Standard Room"}
+                      </p>
+                    </div>
+                    {isCheckedIn && (
+                      <CheckCircle className="w-5 h-5 text-[#039855] shrink-0" />
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2 mb-3">
+                    <div className="flex items-center gap-2 text-xs text-[#535862]">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>
+                        {formatDate(booking.startDate)} - {formatDate(booking.endDate)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-[#535862]">
+                      <span className="font-medium">${booking.totalPrice || 0}</span>
+                    </div>
+                  </div>
+
+                  <div className={`${statusColor} px-2 py-1 rounded-lg text-xs font-medium capitalize inline-block`}>
+                    {booking.status || "pending"}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Services and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 lg:gap-6 w-full min-w-0">

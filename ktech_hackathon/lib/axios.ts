@@ -20,6 +20,11 @@ const getApiUrl = () => {
     ) {
       return `${protocol}//ktech-api.sydeestack.com/api/v1`;
     }
+
+    // Local development - use localhost backend
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "http://localhost:3000/api/v1";
+    }
   }
 
   // Server-side or development fallback
